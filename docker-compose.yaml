@@ -1,0 +1,34 @@
+services:
+  api:
+    build:
+      context: ./api
+    image: playhub-api
+    volumes:
+      - .:/var/www/html:cached
+    ports:
+      - "8080:80"
+    depends_on:
+      - pgsql
+
+  player:
+    build:
+      context: ./player
+    container_name: playhub-player
+    ports:
+      - "3000:80"
+
+  pgsql:
+    platform: linux/x86_64 # Required for Apple Silicon machine based
+    image: postgres:13
+    ports:
+      - 5432:5432
+#    volumes:
+#      - pgsql:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: playhub
+      POSTGRES_DATABASE: playhub
+      POSTGRES_USER: playhub
+      POSTGRES_PASSWORD: playhub
+
+volumes:
+  pgsql:
