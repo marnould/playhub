@@ -1,34 +1,63 @@
+version: '3.8'
+
 services:
   api:
     build:
       context: ./api
-    image: playhub-api
+      dockerfile: Dockerfile
     volumes:
-      - .:/var/www/html:cached
+      - ./api:/var/www/html:cached
+      - ./api/vendor:/var/www/html/vendor:delegated
+    environment:
+      PHP_IDE_CONFIG: "serverName=Docker"
+      APP_ENV: dev
+      DATABASE_URL: "postgresql://playhub:playhub@pgsql:5432/playhub?serverVersion=13&charset=utf8"
+    networks:
+      - playhub
+
+  api_nginx:
+    build:
+      context: ./api/nginx
+      dockerfile: Dockerfile
+    volumes:
+      - ./api:/var/www/html:cached
     ports:
-      - "8080:80"
+      - "8000:80"
+    networks:
+      - playhub
     depends_on:
-      - pgsql
+      - api
 
   player:
     build:
       context: ./player
-    container_name: playhub-player
+      dockerfile: Dockerfile
     ports:
       - "3000:80"
+    networks:
+      - playhub
+    # Add volume for development to see changes immediately
+    volumes:
+      - ./player:/app:cached
+      - /app/node_modules
 
   pgsql:
-    platform: linux/x86_64 # Required for Apple Silicon machine based
+    platform: linux/x86_64
     image: postgres:13
     ports:
-      - 5432:5432
-#    volumes:
-#      - pgsql:/var/lib/postgresql/data
+      - "5432:5432"
     environment:
       POSTGRES_DB: playhub
-      POSTGRES_DATABASE: playhub
       POSTGRES_USER: playhub
       POSTGRES_PASSWORD: playhub
+    volumes:
+      - pgsql_data:/var/lib/postgresql/data
+    networks:
+      - playhub
+
+networks:
+  playhub:
+    driver: bridge
 
 volumes:
-  pgsql:
+  pgsql_data:
